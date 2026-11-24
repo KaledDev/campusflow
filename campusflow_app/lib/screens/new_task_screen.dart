@@ -1,62 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import 'deadlines_screen.dart';
+import '../state/taches_provider.dart';
 
-class NewTaskScreen extends StatefulWidget {
+class NewTaskScreen extends ConsumerStatefulWidget {
   const NewTaskScreen({super.key});
 
   @override
-  State<NewTaskScreen> createState() => _NewTaskScreenState();
+  ConsumerState<NewTaskScreen> createState() => _NewTaskScreenState();
 }
 
-class _NewTaskScreenState extends State<NewTaskScreen> {
+class _NewTaskScreenState extends ConsumerState<NewTaskScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _courseController = TextEditingController(
-    text: 'Master 1 MSI • Programmation Mobile',
-  );
-  final _dueController = TextEditingController(
-    text: 'Dimanche 22 Nov. à 23h59',
-  );
+  final _courseController = TextEditingController(text: 'Programmation Mobile');
   final _notesController = TextEditingController();
 
   @override
   void dispose() {
     _titleController.dispose();
     _courseController.dispose();
-    _dueController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final title = _titleController.text.trim();
-    final course = _courseController.text.trim().isEmpty
-        ? 'Master 1 MSI • Cours'
-        : _courseController.text.trim();
-    final due = _dueController.text.trim().isEmpty
-        ? 'À planifier'
-        : _dueController.text.trim();
-    final notes = _notesController.text.trim().isEmpty
-        ? 'Aucune note ajoutée.'
-        : _notesController.text.trim();
+    ref
+        .read(tachesProvider.notifier)
+        .addTask(
+          title: _titleController.text,
+          courseTitle: _courseController.text,
+          dueDate: DateTime.now().add(const Duration(days: 3)),
+          notes: _notesController.text,
+        );
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tâche enregistrée avec succès.')),
+      const SnackBar(content: Text('Tâche ajoutée à l\'état partagé.')),
     );
 
-    final newTask = CampusTaskItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
-      courseLabel: course,
-      dueLabel: due,
-      notes: notes,
-    );
-
-    Navigator.of(context).pop(newTask);
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/taches');
+    }
   }
 
   @override
@@ -74,29 +63,18 @@ class _NewTaskScreenState extends State<NewTaskScreen> {
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Titre de la tâche *',
+                    labelText: 'Titre *',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Veuillez saisir un titre de tâche.';
-                    }
-                    return null;
-                  },
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Titre obligatoire'
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _courseController,
                   decoration: const InputDecoration(
-                    labelText: 'Cours / Module',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _dueController,
-                  decoration: const InputDecoration(
-                    labelText: 'Échéance',
+                    labelText: 'Cours',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -105,7 +83,7 @@ class _NewTaskScreenState extends State<NewTaskScreen> {
                   controller: _notesController,
                   maxLines: 3,
                   decoration: const InputDecoration(
-                    labelText: 'Notes / Consignes',
+                    labelText: 'Notes',
                     border: OutlineInputBorder(),
                   ),
                 ),

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'screens/deadlines_screen.dart';
+import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
 void main() {
-  runApp(const CampusFlowApp());
+  runApp(const ProviderScope(child: CampusFlowApp()));
 }
 
 class CampusFlowApp extends StatelessWidget {
@@ -12,11 +13,11 @@ class CampusFlowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'CampusFlow',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const DeadlinesScreen(),
+      routerConfig: appRouter,
     );
   }
 }

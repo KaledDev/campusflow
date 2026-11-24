@@ -1,46 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'deadlines_screen.dart';
+import '../state/taches_provider.dart';
 
 class TaskDetailScreen extends StatelessWidget {
-  const TaskDetailScreen({
-    super.key,
-    required this.task,
-    required this.onToggleDone,
-  });
+  const TaskDetailScreen({super.key, required this.taskId});
 
-  final CampusTaskItem task;
-  final VoidCallback onToggleDone;
+  final String taskId;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Détail de la tâche')),
-      body: SafeArea(
-        child: TaskDetailBody(task: task, onToggleDone: onToggleDone),
-      ),
+      appBar: AppBar(title: Text('Détail (#$taskId)')),
+      body: SafeArea(child: TaskDetailBody(taskId: taskId)),
     );
   }
 }
 
-class TaskDetailBody extends StatelessWidget {
-  const TaskDetailBody({
-    super.key,
-    required this.task,
-    required this.onToggleDone,
-  });
+class TaskDetailBody extends ConsumerWidget {
+  const TaskDetailBody({super.key, required this.taskId});
 
-  final CampusTaskItem task;
-  final VoidCallback onToggleDone;
+  final String taskId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final statusText = task.isDone
+    final tasks = ref.watch(tachesProvider).tasks;
+
+    CampusTask? task;
+    for (final item in tasks) {
+      if (item.id == taskId) {
+        task = item;
+        break;
+      }
+    }
+
+    if (task == null) {
+      return Center(
+        child: Text(
+          'Tâche introuvable ($taskId)',
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    final currentTask = task;
+    final statusLabel = currentTask.isCompleted
         ? 'Fait'
-        : task.isLate
-        ? 'En retard'
-        : 'À faire';
+        : (currentTask.isLate ? 'En retard' : 'À faire');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -53,40 +60,36 @@ class TaskDetailBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(task.courseLabel, style: theme.textTheme.labelMedium),
-                  const SizedBox(height: 8),
-                  Text(task.title, style: theme.textTheme.titleLarge),
-                  const SizedBox(height: 8),
                   Text(
-                    'Échéance : ${task.dueLabel}',
-                    style: theme.textTheme.bodyMedium,
+                    currentTask.courseTitle,
+                    style: theme.textTheme.labelMedium,
                   ),
                   const SizedBox(height: 8),
+                  Text(currentTask.title, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 8),
                   Text(
-                    'État : $statusText',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: task.isDone
-                          ? theme.colorScheme.primary
-                          : task.isLate
-                          ? theme.colorScheme.secondary
-                          : theme.colorScheme.onSurface,
-                    ),
+                    'Statut actuel : $statusLabel',
+                    style: theme.textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 12),
-                  Text('Notes', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 6),
-                  Text(task.notes, style: theme.textTheme.bodyMedium),
+                  if (currentTask.notes.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(currentTask.notes, style: theme.textTheme.bodyMedium),
+                  ],
                 ],
               ),
             ),
           ),
           const SizedBox(height: 20),
           FilledButton(
-            onPressed: onToggleDone,
+            onPressed: () {
+              ref
+                  .read(tachesProvider.notifier)
+                  .toggleTaskCompleted(currentTask.id);
+            },
             child: Text(
-              task.isDone ? 'Marquer comme non fait' : 'Marquer comme fait',
+              currentTask.isCompleted
+                  ? 'Marquer comme non fait'
+                  : 'Marquer comme fait',
             ),
           ),
         ],
